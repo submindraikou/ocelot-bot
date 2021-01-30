@@ -1,0 +1,18 @@
+{
+  "name": "Ocelot_Bot",
+  "version": "0.0.0",
+  "description": "A sample Node.js app using Express 4",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "director": ""
+  },
+  "keywords": [
+    "groupme",
+    "heroku",
+    "kvstoreio"
+  ],
+  "license": "MIT"
+}
