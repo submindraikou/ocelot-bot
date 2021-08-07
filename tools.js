@@ -109,7 +109,6 @@ exports.KVStore = (type, key, db) => {
 				db.data[key] = JSON.parse(JSON.parse(chunk).value);
 			}
 	}, headers);
-
 }
 
 exports.updateInfo = (gi) => {
@@ -123,6 +122,7 @@ exports.updateInfo = (gi) => {
 
 	// Clear the raw info and re populate from GroupMe
 	gi.raw = '';
+	gi.updated = false;
 	send(options, {}, (chunk) => {
 		gi.raw += chunk.toString();
 	});
@@ -136,9 +136,9 @@ exports.updateInfo = (gi) => {
 			gi.members[members[i].user_id] = members[i].nickname;
 		}
 		console.log('[Info Updater] Members list has been updated!');
+		gi.updated = true;
 	}, 3000);
 }
-
 
 // Post messages to chat
 // mentions = ['73780450'];
