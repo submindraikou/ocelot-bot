@@ -211,42 +211,49 @@ function parse() {
 		
 		// Commands that don't start with !
 
-		// A function to @everyone in a group
-		function atEveryone() {
-			// GroupMe mentions are an attachment to a message that contans two parts:
-			// * An array of user IDs to mention.
-			// * An array of arrays that each contain a start and end point to bold.
-			// This @everyone command will go through each user in a group and add them to a message in order to alert them.
-			var mention = [];
-			var loc = [];
-			var phrase = 'Howdy y\'all. Read this please!';
-			for (var j = 0; j < Object.keys(group_info.members).length; j++) {
-				if (mention.length >= 47) {
-					// Maximum number of users a single message can mention is 47.
-					// Once we reach this number of users send a message and start over.
-					tools.say(phrase, mention, loc);
-					mention = [];
-					loc = [];
+		// A recursive function to @everyone in a group
+		function atEveryone(attempts) {
+			// Update how many attempts we've made
+			attempts++;
+			// If the member list is updated then @ everyone
+			if (group_info.updated) {
+				// GroupMe mentions are an attachment to a message that contans two parts:
+				// * An array of user IDs to mention.
+				// * An array of arrays that each contain a start and end point to bold.
+				// This @everyone command will go through each user in a group and add them to a message in order to alert them.
+				var mention = [];
+				var loc = [];
+				var phrase = 'Howdy y\'all. Read this please!';
+				for (var j = 0; j < Object.keys(group_info.members).length; j++) {
+					if (mention.length >= 47) {
+						// Maximum number of users a single message can mention is 47.
+						// Once we reach this number of users send a message and start over.
+						tools.say(phrase, mention, loc);
+						mention = [];
+						loc = [];
+					}
+					mention.push(Object.keys(group_info.members)[j]);
+					loc.push([0, phrase.length]);
 				}
-				mention.push(Object.keys(group_info.members)[j]);
-				loc.push([0, phrase.length]);
+				tools.say(phrase, mention, loc);
+			// Otherwise wait 2 seconds then call the function again
+			} else {
+				setTimeout(() => {
+					if (attempts > 10) { // 10 attempts = ~20 seconds
+						console.log('[Chat]: Member list didn\'t update in 20 seconds! Please check your token and make sure it is correct.');
+						tools.say('Sorry! There was an error connecting to the server and updating the member list.');
+					} else {
+						console.log('[Chat]: Waiting 2 seconds before attempting to @ everyone again.');
+						atEveryone(attempts);
+					}
+				}, 2000);
 			}
-			tools.say(phrase, mention, loc);
 		}
 
 		// @everyone or @all or @y'all
 		if (message.text.search(/@everyone|@all|@y'all|@everybody/) > -1) {
 			if ((db.data['admins'].includes(message.sender_id) || default_admins.includes(message.sender_id))) {
-				// If the member list is updated then @ everyone
-				if (group_info.updated) {
-					atEveryone();
-				// Otherwise wait 4 seconds for the member list to be updated then @ everyone
-				} else {
-					console.log('Waiting 4 seconds before @ing everyone');
-					setTimeout(() => {
-						atEveryone();
-					}, 4000);
-				}
+				atEveryone(0);
 			}
 		}
 
