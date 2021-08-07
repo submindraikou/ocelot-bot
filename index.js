@@ -72,6 +72,12 @@ function parse() {
 					tools.say('Reslife move-in info: https://reslife.tamu.edu/movein/');
 					break;
 
+				case 'code':
+				case 'git':
+				case 'github':
+					tools.say('List of commands: https://github.com/submindraikou/ocelot-bot');
+					break;
+
 				case 'help':
 					tools.say('List of commands: https://pastebin.com/raw/m9zpUnc9');
 					break;
