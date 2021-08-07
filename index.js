@@ -8,7 +8,6 @@ const tools = require('./tools.js');
 // KVStore Data
 var db = {
 	data: {
-		'listings': {},
 		'admins': [],
 		'banned': []
 	}
@@ -17,15 +16,19 @@ var db = {
 // Hardcoded admins in case the database cannot be reached
 var default_admins = ['73780450'];
 // Get data from database on bot startup
-var master_keys = ['listings', 'admins', 'banned'];
+var master_keys = ['admins', 'banned'];
 for (var i = 0; i < master_keys.length; i++) {
 	tools.KVStore('GET', master_keys[i], db);
 }
 
+// Settings
+const atJAs = process.env.atJAs	 === 'enabled' ? true : false;
+
 // GroupMe info
 var group_info = {
 	raw: '',
-	members: {}
+	members: {},
+	updated: false
 }
 
 // Update GroupMe information
@@ -39,13 +42,13 @@ function parse() {
 	// Log the message for debugging purposes
 	console.log('[Chat] Message: ' + JSON.stringify(message));
 
-	if (message.text) {
+	if (message.text && message.sender_type === 'user') {
 
-		// Commands should start with a ~
-		if (message.text[0] === '~') {
+		// Commands that start with a !
+		if (message.text[0] === '!') {
 
 			// Make sure the user isn't banned
-			if (db.data['banned'].includes(message.sender_id)) return;
+			if (db.data['banned'].includes(message.sender_id) && !default_admins.includes(message.sender_id)) return;
 
 			// Get the command the user typed
 			var command = [];
@@ -61,106 +64,16 @@ function parse() {
 			// Do something based on the command
 			switch (command[0]) {
 
-				// Allow users to sell things
-				case 's':
-				case 'sell':
-					// If the user asks for help
-					if (command[1] === 'help') {
-						tools.say('List of commands: https://pastebin.com/raw/m9zpUnc9');
-						break;
-					}
-
-					// Create the listing
-					try {
-						if (!command[1]) throw 'not enough parameters';
-						var info = command[1].split(',');
-						info[0] = info[0].trim(); // TODO: We should probably not allow users to create listings with multiple newlines...
-
-						// Get amount and price if the user included it
-						var amount, price;
-						if (info[1]) {
-							var temp = info[1].trim().split(' ');
-							if (temp[0]) amount = temp[0];
-							if (temp[1]) price = temp[1][0] === '$' ? temp[1] : '$' + temp[1];
-						}
-
-						// Store the data in the db object only if there is no conflicting id
-						if (!db.data['listings'][info[0]]) {
-							db.data['listings'][info[0]] = {
-								'u': message.sender_id
-							};
-							// Amount and price are optional
-							if (amount) db.data['listings'][info[0]]['a'] = amount;
-							if (price) db.data['listings'][info[0]]['p'] = price;
-						} else {
-							// If the id is already in use then alert the user
-							throw 'this ID is already in use';
-						}
-						// Give the user confirmation that their listing has been created
-						var confirmation_message = 'Successfully created a listing for [' + info[0] + ']';
-						if (amount) confirmation_message = 'Successfully created a listing for ' + amount + ' of [' + info[0] + ']';
-						if (price) confirmation_message += ' for ' + price;
-						confirmation_message += '.';
-						tools.say(confirmation_message);
-						// Update the database
-						tools.KVStore('PUT', 'listings', db.data['listings']);
-					} catch (e) {
-						// Catch thrown errors
-						tools.say('There was an error creating your listing: ' + e + '. Please refer to the list of commands: https://pastebin.com/raw/m9zpUnc9');
-					}
+				case 'faq':
+					tools.say('Here is a helpful document with info about the SAs and JAs, and some frequently asked questions! Make sure to use your TAMU email to view the document: <link removed>');
+					break;
+					
+				case 'movein':
+					tools.say('Reslife move-in info: https://reslife.tamu.edu/movein/');
 					break;
 
-				// List everything being sold
-				case 'l':
-				case 'list':
-					var listing_message = 'The items available:\n';
-					// List of listings
-					var list_keys = Object.keys(db.data['listings']);
-					// Create a list to say in chat
-					for (var i = 0; i < list_keys.length; i++) {
-						listing_message += list_keys[i];
-						if (db.data['listings'][list_keys[i]].a) listing_message += ' (' + db.data['listings'][list_keys[i]].a + ' available)';
-						if (db.data['listings'][list_keys[i]].p) listing_message += ' (' + db.data['listings'][list_keys[i]].p + ')';
-						listing_message += '\n';
-					}
-					listing_message += 'To contact a user selling one of these items type ~buy <item listing>';
-					tools.say(listing_message);
-					break;
-
-				// Contact the original seller
-				case 'b':
-				case 'buy': 
-					// Alert the original poster that someone is interested in their item.
-					if (db.data['listings'][command[1]]) {
-						var mention = [];
-						mention.push(db.data['listings'][command[1]]['u']);
-						var loc = [];
-						// Just in case the user left the chat or the member cannot be found
-						try {
-							loc.push([8, group_info.members[mention[0]].length]);
-							tools.say('Tagging ' + group_info.members[mention[0]], mention, loc);
-						} catch (e) {
-							tools.say('There was an error trying to alert the seller. Maybe they left the chat?');
-							console.log('[Group Info] Error: ' + e);
-						}
-					}
-					// If the item was not found
-					else tools.say('Item not found. Please use ~buy <item listing> or use ~list to view everything again');
-					break;
 				case 'help':
 					tools.say('List of commands: https://pastebin.com/raw/m9zpUnc9');
-					break;
-
-				// Admin Commands
-				// Purge an item from the listing
-				case 'purge':
-					if (db.data['admins'].includes(message.sender_id) || default_admins.includes(message.sender_id)) {
-
-						// Purge entry from the listings and update the database
-						tools.say('Purging ' + command[1] + ' from the listings.');
-						delete db.data['listings'][command[1]];
-						tools.KVStore('PUT', 'listings', db.data['listings']);
-					}
 					break;
 
 				// Promote a user to be an admin
@@ -248,13 +161,9 @@ function parse() {
 					break;
 
 				// DEBUGGING
-				case 'reload':
+				case 'list_admins':
 					if (db.data['admins'].includes(message.sender_id) || default_admins.includes(message.sender_id)) {
-						tools.say('Reloading member list and KVStore data...');
-						tools.updateInfo(group_info);
-						tools.KVStore('GET', 'listings', db);
-						tools.KVStore('GET', 'admins', db);
-						tools.KVStore('GET', 'banned', db);
+						tools.say('Admin list: ' + db.data['admins']);
 					}
 					break;
 
@@ -265,12 +174,126 @@ function parse() {
 					}
 					break;
 
+				// DEBUGGING
+				case 'reload':
+					if (db.data['admins'].includes(message.sender_id) || default_admins.includes(message.sender_id)) {
+						tools.say('Reloading member list and KVStore data...');
+						tools.updateInfo(group_info);
+						tools.KVStore('GET', 'admins', db);
+						tools.KVStore('GET', 'banned', db);
+					}
+					break;
+
+				// EMERGENCY STOP
+				// Sometimes we make mistakes and bot's will start spamming for one reason or another.
+				// This will emergency stop the bot by exiting. Use wisely!
+				case 'kill':
+				case 'stop':
+					if (db.data['admins'].includes(message.sender_id) || default_admins.includes(message.sender_id)) {
+						process.exit();
+					}
+					break;
+
 				// If a command wasn't found then show the list of commands
 				default:
 					tools.say('Command not recognized. For a list of commands type ~help');
 					console.log('[Commands] Unrecognized command: ' + command[0]);
 					console.log('[Commands] The full message: ' + JSON.stringify(command));
 			}
+
+		}
+		
+		// Commands that don't start with !
+
+		// A function to @everyone in a group
+		function atEveryone() {
+			// GroupMe mentions are an attachment to a message that contans two parts:
+			// * An array of user IDs to mention.
+			// * An array of arrays that each contain a start and end point to bold.
+			// This @everyone command will go through each user in a group and add them to a message in order to alert them.
+			var mention = [];
+			var loc = [];
+			var phrase = 'Howdy y\'all. Read this please!';
+			for (var j = 0; j < Object.keys(group_info.members).length; j++) {
+				if (mention.length >= 47) {
+					// Maximum number of users a single message can mention is 47.
+					// Once we reach this number of users send a message and start over.
+					tools.say(phrase, mention, loc);
+					mention = [];
+					loc = [];
+				}
+				mention.push(Object.keys(group_info.members)[j]);
+				loc.push([0, phrase.length]);
+			}
+			tools.say(phrase, mention, loc);
+		}
+
+		// @everyone or @all or @y'all
+		if (message.text.search(/@everyone|@all|@y'all|@everybody/) > -1) {
+			if ((db.data['admins'].includes(message.sender_id) || default_admins.includes(message.sender_id))) {
+				// If the member list is updated then @ everyone
+				if (group_info.updated) {
+					atEveryone();
+				// Otherwise wait 4 seconds for the member list to be updated then @ everyone
+				} else {
+					console.log('Waiting 4 seconds before @ing everyone');
+					setTimeout(() => {
+						atEveryone();
+					}, 4000);
+				}
+			}
+		}
+
+		// @JAs
+		// A simple @ certain users command.
+		if (message.text.search(/@JAs/i) > -1 && atJAs) {
+			// In order: Thomas, Yutika, Prisha, Kristen
+			var mention = [73780450, 38409954, 44501522, 49609197];
+			var loc = [[10, 14], [10, 14], [10, 14], [10, 14]];
+			var phrase = 'Summoning @PKYT.';
+			tools.say(phrase, mention, loc);
+		}
+
+	}
+
+	// React to certain system messages, such as users joining and leaving
+	if (message.text && message.sender_type === 'system') {
+
+		// A user has left, say goodbye!
+		if (message.text.search(/removed|left/) > -1) {
+			tools.say('Ciaowdy!');
+		}
+
+		// A welcome message for joining users
+		if (message.text.search(/added|joined/) > -1) {
+			// Welcome message
+			var message_text = '';
+
+			// 20% chance to say Meowdy instead of Howdy
+			if (Math.random() > 0.8) {
+				message_text = 'Meowdy';
+			} else {
+				message_text = 'Howdy';
+			}
+
+			// If the system message is of the format: <name> has joined the group.
+			// We can get the username by removing the ending portion.
+			// Technically we can do something like this for the other cases (i.e. "<name> has added <name> into the group" messages).
+			// But I didn't feel like writing that in here...
+			if (message.text.includes(' has joined the group')) {
+				var name = message.text.split(' has joined the group');
+				message_text += ' ' + name[0];
+			}
+
+			// If the system message is of the format: <name> has rejoined the group.
+			if (message.text.includes(' has rejoined the group')) {
+				var name = message.text.split(' has rejoined the group');
+				message_text += ' ' + name[0];
+			}
+
+			// Send a welcome message
+			// TODO: Make the welcome message a variable that can be changed from a Heroku dashboard.
+			tools.say(message_text + ', welcome to the LechFadden 2021-2022 GroupMe! Tell us your major and a fun fact about you! Thanks and Gig \'Em!');
 		}
 	}
 }
