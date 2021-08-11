@@ -111,7 +111,8 @@ exports.KVStore = (type, key, db) => {
 	}, headers);
 }
 
-exports.updateInfo = (gi) => {
+// Update KVStore data and GroupMe members list info
+exports.updateInfo = (gi, debug) => {
 
 	// Options
 	var options = {
@@ -123,6 +124,7 @@ exports.updateInfo = (gi) => {
 	// Clear the raw info and re populate from GroupMe
 	gi.raw = '';
 	gi.updated = false;
+	gi.muted = 0;
 	send(options, {}, (chunk) => {
 		gi.raw += chunk.toString();
 	});
@@ -132,8 +134,10 @@ exports.updateInfo = (gi) => {
 	// TODO: Run this function on a close event instead of a timer of 3 seconds
 	setTimeout(() => {
 		var members = JSON.parse(gi.raw).response.members;
+		if (debug) console.log(members);
 		for (var i = 0; i < members.length; i++) {
 			gi.members[members[i].user_id] = members[i].nickname;
+			if (members[i].muted) gi.muted += 1;
 		}
 		console.log('[Info Updater] Members list has been updated!');
 		gi.updated = true;
