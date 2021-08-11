@@ -22,12 +22,13 @@ for (var i = 0; i < master_keys.length; i++) {
 }
 
 // Settings
-const atJAs = process.env.atJAs	 === 'enabled' ? true : false;
+const JAS = process.env.atJAs === 'enabled' ? true : false;
 
 // GroupMe info
 var group_info = {
 	raw: '',
 	members: {},
+	muted: 0,
 	updated: false
 }
 
@@ -64,20 +65,52 @@ function parse() {
 			// Do something based on the command
 			switch (command[0]) {
 
+				// Display a FAQ
 				case 'faq':
 					tools.say('Here is a helpful document with info about the SAs and JAs, and some frequently asked questions! Make sure to use your TAMU email to view the document: <link removed>');
 					break;
-					
+
+				// Display move-in information
 				case 'movein':
 					tools.say('Reslife move-in info: https://reslife.tamu.edu/movein/');
 					break;
 
+				// Display the code for the bot
 				case 'code':
 				case 'git':
 				case 'github':
 					tools.say('List of commands: https://github.com/submindraikou/ocelot-bot');
 					break;
 
+				// Display how many users have the chat muted
+				case 'muted':
+				case 'mute':
+					// Recursive function in case the member list hasn't been updated yet
+					function muted(attempts) {
+						if (group_info.updated) {
+							// Display total amount and percentage of muted users
+							var percentage = (group_info.muted / Object.keys(group_info.members).length) * 10000;
+							percentage = Math.round(percentage) / 100;
+							tools.say(group_info.muted + ' users (' + percentage + '%) have this chat muted.');
+						} else {
+							// Recurse after 2 seconds
+							setTimeout(() => {
+								if (attempts > 10) { // 10 attempts = ~20 seconds
+									console.log('[Chat]: Member list didn\'t update in 20 seconds! Please check your token and make sure it is correct.');
+									tools.say('Sorry! There was an error connecting to the server and updating the member list.');
+								} else {
+									console.log('[Chat]: Waiting 2 seconds before attempting to let everyone know about mutes.');
+									muted(attempts);
+								}
+							}, 2000);
+						}
+					}
+
+					// Call the function
+					muted();
+					break;
+
+				// Display a pastebin of available commands
 				case 'help':
 					tools.say('List of commands: https://pastebin.com/raw/m9zpUnc9');
 					break;
@@ -167,6 +200,7 @@ function parse() {
 					break;
 
 				// DEBUGGING
+				// List the IDs of admins
 				case 'list_admins':
 					if (db.data['admins'].includes(message.sender_id) || default_admins.includes(message.sender_id)) {
 						tools.say('Admin list: ' + db.data['admins']);
@@ -174,6 +208,7 @@ function parse() {
 					break;
 
 				// DEBUGGING
+				// List the IDs of members
 				case 'list_members':
 					if (db.data['admins'].includes(message.sender_id) || default_admins.includes(message.sender_id)) {
 						tools.say(JSON.stringify(group_info.members));
@@ -181,10 +216,13 @@ function parse() {
 					break;
 
 				// DEBUGGING
+				// Reload KVStore and GroupMe member data
 				case 'reload':
 					if (db.data['admins'].includes(message.sender_id) || default_admins.includes(message.sender_id)) {
 						tools.say('Reloading member list and KVStore data...');
-						tools.updateInfo(group_info);
+						// If an admin uses !reload true it will display debug info
+						if (command[1] === 'true') tools.updateInfo(group_info, true);
+						else tools.updateInfo(group_info);
 						tools.KVStore('GET', 'admins', db);
 						tools.KVStore('GET', 'banned', db);
 					}
