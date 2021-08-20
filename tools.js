@@ -145,9 +145,7 @@ exports.updateInfo = (gi, debug) => {
 }
 
 // Post messages to chat
-// mentions = ['73780450'];
-// location = [[0, 1]];
-exports.say = (message, mentions, loc) => {
+exports.say = (message, attachments) => {
 
 	// Options
 	var options = {
@@ -168,7 +166,15 @@ exports.say = (message, mentions, loc) => {
 	// -> an array of user ids ['user1', 'user2', 'user3']
 	// -> an array of which parts of the text to bold [[0,1], [2,5], [1,3]]
 	// Each mentioned user id corresponds to the location of the same index
-	if (mentions) body['attachments'] = [{'loci': loc, 'type': 'mentions', 'user_ids': mentions}];
+	// Example: [{'loci': location array, 'type': 'mentions', 'user_ids': mentions array}]
+
+	// Images
+	// GroupMe images require 2 parts
+	// -> a type set to image
+	// -> a GroupMe image url
+	// For image processing see: https://dev.groupme.com/docs/image_service
+	// Example: [{'type': 'image', 'url': 'https://i.groupme.com/828x1248.jpeg.8fba5c5f2138428191c976a7bbb345b9'}]
+	if (attachments) body['attachments'] = attachments;
 
 	// Log that we sent the message.
 	console.log('[Chat] Sending [' + message + '] to the chat room');
