@@ -59,8 +59,8 @@ function parse() {
 				message.text.substr(0, index),
 				message.text.substr(index + 1)
 			];
-			// Trim the ~ from the command
-			command[0] = command[0].substring(1);
+			// Trim the ! from the command and make the command lowercase so we don't have to handle as many variations
+			command[0] = command[0].substring(1).toLowerCase();
 
 			// Do something based on the command
 			switch (command[0]) {
@@ -108,6 +108,14 @@ function parse() {
 
 					// Call the function
 					muted();
+					break;
+
+				// Display an image of a schedule
+				case 'howdyschedule':
+				case 'howdyweek':
+				case 'howdy':
+				case 'schedule':
+					tools.say('Here\'s the Howdy Week Schedule! ', [{'type': 'image', 'url': 'https://i.groupme.com/1493x2250.jpeg.575520d71e404739a50d91018bef2c43.large'}]);
 					break;
 
 				// Display a pastebin of available commands
@@ -266,14 +274,14 @@ function parse() {
 					if (mention.length >= 47) {
 						// Maximum number of users a single message can mention is 47.
 						// Once we reach this number of users send a message and start over.
-						tools.say(phrase, mention, loc);
+						tools.say(phrase, [{'loci': loc, 'type': 'mentions', 'user_ids': mention}]);
 						mention = [];
 						loc = [];
 					}
 					mention.push(Object.keys(group_info.members)[j]);
 					loc.push([0, phrase.length]);
 				}
-				tools.say(phrase, mention, loc);
+				tools.say(phrase, [{'loci': loc, 'type': 'mentions', 'user_ids': mention}]);
 			// Otherwise wait 2 seconds then call the function again
 			} else {
 				setTimeout(() => {
@@ -302,7 +310,7 @@ function parse() {
 			var mention = [73780450, 38409954, 44501522, 49609197];
 			var loc = [[10, 14], [10, 14], [10, 14], [10, 14]];
 			var phrase = 'Summoning @PKYT.';
-			tools.say(phrase, mention, loc);
+			tools.say(phrase, [{'loci': loc, 'type': 'mentions', 'user_ids': mention}]);
 		}
 
 	}
