@@ -74,6 +74,7 @@ PORT: <number>
 
 JAS: enabled
 - Allows for users to use a command to @ specific users (in this case officers of an organization).
+- To enable this feature the variable must be set to "enabled"
 
 ## Adding More Commands
 
