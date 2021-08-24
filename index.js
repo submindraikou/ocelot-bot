@@ -371,7 +371,7 @@ require('http').createServer( (req, res) => {
 
 	// Once we get an end event we can safely parse the data
 	req.addListener('end', () => {
-		parse(req);
+		if (req.method === 'POST') parse(req);
 	});
 
 	// We can do other things here but we don't really need to
