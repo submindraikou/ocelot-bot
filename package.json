@@ -1,13 +1,12 @@
 {
   "name": "Ocelot_Bot",
   "version": "0.0.0",
-  "description": "A sample Node.js app using Express 4",
+  "description": "An example NodeJS bot built from CoolGuyBot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "director": ""
   },
   "keywords": [
     "groupme",
