@@ -69,7 +69,10 @@ Congratulations! Once you save those variables and linked your bot to a reposito
 
 Additional, optional settings that can be set on the bot using config vars on Heroku. If they aren't set they are disabled by default.
 
-atJAs: enabled
+PORT: <number>
+- Set a custom port for your bot, defaults to 5000 if not set.
+
+JAS: enabled
 - Allows for users to use a command to @ specific users (in this case officers of an organization).
 
 ## Adding More Commands
