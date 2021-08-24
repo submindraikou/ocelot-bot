@@ -1,8 +1,4 @@
-// Setup the bot as a Node.js server
-const http = require('http');
-const director = require('director');
-
-// Misc.
+// Required tools
 const tools = require('./tools.js');
 
 // KVStore Data
@@ -22,7 +18,7 @@ for (var i = 0; i < master_keys.length; i++) {
 }
 
 // Settings
-const JAS = process.env.atJAs === 'enabled' ? true : false;
+const JAS = process.env.JAS === 'enabled' ? true : false;
 
 // GroupMe info
 var group_info = {
@@ -36,10 +32,10 @@ var group_info = {
 tools.updateInfo(group_info);
 
 // Responding to text chat
-function parse() {
+function parse(req) {
 
 	// Split the message into parts
-	var message = JSON.parse(this.req.chunks[0]);
+	var message = JSON.parse(req.chunks[0]);
 	// Log the message for debugging purposes
 	console.log('[Chat] Message: ' + JSON.stringify(message));
 
@@ -313,6 +309,13 @@ function parse() {
 			tools.say(phrase, [{'loci': loc, 'type': 'mentions', 'user_ids': mention}]);
 		}
 
+		// A simple response when someone asks where a location is
+		// This specific regex searches for someone using "where" or "what" along with the word "Tweener" (i.e. "Where's tweener?", "what is tweener?", etc.)
+		// and responds with a simple message to let the user know where the location is.
+		if (message.text.search(/(?=.*tweener)((?=.*where+)|(?=.*what+)).+/i) > -1 || message.text.toLowerCase() === 'tweener?') {
+			tools.say('Howdy! Tweener is the outside area between Lechner and McFadden.');
+		}
+
 	}
 
 	// React to certain system messages, such as users joining and leaving
@@ -357,32 +360,34 @@ function parse() {
 	}
 }
 
-// On request recieved
-var router = new director.http.Router({
-	'/' : {
-		post: parse,
-		get: ping
-	}
-});
+// Set up the bot as a server to recieve messages
+require('http').createServer( (req, res) => {
 
-// Server to listen for requests
-var server = http.createServer( (req, res) => {
+	// Store the data recieved
 	req.chunks = [];
 	req.on('data', (chunk) => {
 		req.chunks.push(chunk.toString());
 	});
 
-	router.dispatch(req, res, (err) => {
-		res.writeHead(err.status, {"Content-Type": "text/plain"});
-		res.end(err.message);
+	// Once we get an end event we can safely parse the data
+	req.addListener('end', () => {
+		parse(req);
 	});
-});
 
-// Port
-var port = Number(process.env.PORT || 5000);
-server.listen(port);
+	// We can do other things here but we don't really need to
+	// TODO: Maybe we could add a cool webpage? Or even just display the current version so we can easily tell if we've updated...
+	switch (req.method) {
+		case 'GET':
+			// This is what people see when they go to <your bot name>.herokuapp.com
+			res.writeHead(200);
+			res.end("Ocelot bot");
+			break;
+		case 'POST':
+			// We don't really do anything here, the messages get responded to once all the data is recieved on our end
+			break;
+		default:
+			// We don't need to do anything here either
+			break;
+	}
 
-function ping() {
-	this.res.writeHead(200);
-	this.res.end("Ocelot bot");
-}
+}).listen(Number(process.env.PORT || 5000));
