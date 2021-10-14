@@ -19,6 +19,8 @@ for (var i = 0; i < master_keys.length; i++) {
 
 // Settings
 const JAS = process.env.JAS === 'enabled' ? true : false;
+const ADMINONLY = process.env.ADMINONLY === 'enabled' ? true : false;
+const EVENT = process.env.ADMINONLY;
 
 // GroupMe info
 var group_info = {
@@ -46,6 +48,9 @@ function parse(req) {
 
 			// Make sure the user isn't banned
 			if (db.data['banned'].includes(message.sender_id) && !default_admins.includes(message.sender_id)) return;
+
+			// If the bot is in admin only mode then only admins can use commands
+			if (db.data['admins'].includes(message.sender_id) && ADMINONLY) return;
 
 			// Get the command the user typed
 			var command = [];
