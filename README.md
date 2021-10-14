@@ -72,6 +72,13 @@ Additional, optional settings that can be set on the bot using config vars on He
 PORT: <number>
 - Set a custom port for your bot, defaults to 5000 if not set.
 
+ADMINONLY: enabled
+- Turning on admin only mode will only allow admins to use any command.
+- To enable this feature the variable must be set to "enabled"
+
+EVENT: any event
+- Enabled an event for the bot.
+
 JAS: enabled
 - Allows for users to use a command to @ specific users (in this case officers of an organization).
 - To enable this feature the variable must be set to "enabled"
